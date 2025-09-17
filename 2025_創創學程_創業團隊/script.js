@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 1. DATA & CONSTANTS (New Bright & Gentle Palette) ---
+    // --- 1. DATA & CONSTANTS (New Sweet Macaron Palette) ---
     const teamMates = [
-        { name: '肇云', color: '#b3e0dc' }, // Soft Aqua
-        { name: '庭瑜', color: '#c4e3f3' }, // Pastel Blue
-        { name: '棨理', color: '#f7d9e4' }, // Blush Pink
-        { name: '旭辰', color: '#f7ebc7' }, // Creamy Yellow
+        { name: '肇云', color: '#ffc2d1' }, // Strawberry Pink
+        { name: '庭瑜', color: '#d7c7f4' }, // Taro Purple
+        { name: '棨理', color: '#ffdcb3' }, // Peach Orange
+        { name: '旭辰', color: '#c8e7d4' }, // Mint Green
     ];
+    let filteredMember = null; // State for filtering
+
     const schedules = {
         '肇云': { 'Monday': { '2': '會計專業入門', '3': '會計專業入門', '4': '會計專業入門', '7': '創創東東', '8': '創創東東', '9': '創創東東', '10': '創創東東', 'A': '創創東東', 'B': '創創東東' }, 'Tuesday': { '7': '稅務法規', '8': '稅務法規', '9': '稅務法規' }, 'Wednesday': { '2': '中級會計專題', '3': '中級會計專題', '4': '中級會計專題', '8': '桌球初級', '9': '桌球初級' }, 'Thursday': { '7': '組織心理學', '8': '組織心理學', '9': '組織心理學', '10': '組織心理學' }, 'Friday': { '10': '企業併購', 'A': '企業併購', 'B': '企業併購' } },
         '庭瑜': { 'Monday': { '2': 'Python設計', '3': 'Python設計', '4': 'Python設計', '7': '創創東東', '8': '創創東東', '9': '創創東東', '10': '創創東東', 'A': '創創東東', 'B': '創創東東' }, 'Tuesday': { '2': '統計學實習', '3': '統計學實習', '4': '統計學實習', '7': '電子電路', '8': '電子電路' }, 'Wednesday': { '3': '普化丙', '4': '普化丙', '6': '工海海工概論', '7': '普物乙', '8': '普物乙', '9': '普物乙' }, 'Thursday': { '3': '電子電路', '4': '電子電路', '6': '工程力學', '7': '工程力學', '8': '統計學實習', '9': '統計學實習' }, 'Friday': { '3': '普化丙', '4': '普化丙', '6': '貨幣銀行學', '7': '貨幣銀行學', '8': '貨幣銀行學' } },
@@ -37,14 +39,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.type === currentWeekType || !event.type) return event.name;
         return null;
     }
-
+    
     function render() {
         grid.innerHTML = '';
-        days.forEach(day => {
+
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+        const membersToDisplay = filteredMember ? teamMates.filter(p => p.name === filteredMember) : teamMates;
+
+        days.forEach((day, index) => {
             const column = document.createElement('div');
             column.className = 'day-column';
-            column.innerHTML = `<div class="day-header">${dayMap[day]}</div>`;
-            
+
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'day-header';
+            const dayName = document.createElement('div');
+            dayName.className = 'day-name';
+            dayName.textContent = dayMap[day];
+            const dateLabel = document.createElement('div');
+            dateLabel.className = 'date-label';
+            const currentDate = new Date(monday);
+            currentDate.setDate( monday.getDate() + index);
+            dateLabel.textContent = `${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
+            dayHeader.appendChild(dayName);
+            dayHeader.appendChild(dateLabel);
+            column.appendChild(dayHeader);
+
             Object.values(timeSections).forEach(slots => {
                 const section = document.createElement('div');
                 section.className = 'day-section';
@@ -52,7 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const slot = document.createElement('div');
                     slot.className = 'time-slot';
                     
-                    const busyMembers = teamMates.map(p => ({ ...p, activity: getActivity(p.name, day, slotKey) })).filter(p => p.activity);
+                    const busyMembers = membersToDisplay
+                        .map(p => ({ ...p, activity: getActivity(p.name, day, slotKey) }))
+                        .filter(p => p.activity);
                     
                     const timeLabel = document.createElement('span');
                     timeLabel.className = 'time-slot-key';
@@ -81,16 +106,35 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             grid.appendChild(column);
         });
-        renderLegend();
     }
     
     function renderLegend() {
         if (!personLegend || !statusLegend) return;
         personLegend.innerHTML = '';
+
         teamMates.forEach(p => {
             const item = document.createElement('div');
             item.className = 'legend-item';
             item.innerHTML = `<div class="avatar" style="background-color: ${p.color};">${p.name.charAt(0)}</div><span>${p.name}</span>`;
+
+            if (filteredMember) {
+                if (p.name === filteredMember) {
+                    item.classList.add('is-active');
+                } else {
+                    item.classList.add('is-inactive');
+                }
+            }
+
+            item.addEventListener('click', () => {
+                if (filteredMember === p.name) {
+                    filteredMember = null; // Toggle off if clicking the same person
+                } else {
+                    filteredMember = p.name; // Set to the clicked person
+                }
+                render(); // Re-render the grid
+                renderLegend(); // Re-render the legend for visual state
+            });
+
             personLegend.appendChild(item);
         });
 
@@ -109,12 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
         const dayIndex = (now.getDay() + 6) % 7;
         const totalMinutes = now.getHours() * 60 + now.getMinutes();
-        const dayPercent = dayIndex / 7;
-        const timePercent = totalMinutes / (24 * 60);
-        const totalPercent = (dayPercent + timePercent / 7) * 100;
+        const totalMinutesInWeek = 7 * 24 * 60;
+        const minutesPassed = dayIndex * 24 * 60 + totalMinutes;
+        const totalPercent = (minutesPassed / totalMinutesInWeek) * 100;
         const indicator = document.getElementById('now-indicator');
         if (indicator && totalPercent >= 0 && totalPercent <= 100) {
-            indicator.style.left = `${totalPercent}%`;
+            indicator.style.left = `calc(${totalPercent}% + ${dayIndex * 12}px)`;
             indicator.style.display = 'block';
         } else if (indicator) {
             indicator.style.display = 'none';
@@ -140,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     render();
+    renderLegend(); // Initial render for legend
     updateNowIndicator();
-    setInterval(updateNowIndicator, 1000);
+    setInterval(updateNowIndicator, 60000);
 });
