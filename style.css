@@ -107,6 +107,7 @@ h1 { font-size: 1.875rem; font-weight: 700; margin: 0; }
     box-shadow: 0 5px 15px var(--shadow-color);
     z-index: 10;
 }
+
 .slot-person-bar { height: 100%; flex-grow: 1; }
 .time-slot-key {
     position: absolute; top: 50%; left: 50%;
@@ -136,16 +137,16 @@ h1 { font-size: 1.875rem; font-weight: 700; margin: 0; }
 
 #now-indicator {
     position: absolute;
-    width: 3px;
+    width: 3px; /* More prominent */
     background-color: var(--now-indicator-color);
-    border-radius: 1.5px;
+    border-radius: 1px;
     transition: all 0.5s ease;
-    z-index: 5;
+    z-index: 7; 
     display: none;
     transform: translateX(-50%);
-    cursor: pointer; /* Make it interactive */
+    cursor: pointer;
+    box-shadow: 0 0 8px 1px var(--now-indicator-color); /* Glow effect */
 }
-/* Expands the hover area for easier interaction */
 #now-indicator::after {
     content: '';
     position: absolute;
@@ -158,10 +159,10 @@ h1 { font-size: 1.875rem; font-weight: 700; margin: 0; }
     visibility: hidden;
     opacity: 0;
     position: absolute;
-    bottom: 100%; /* Position above the line */
+    bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: 5px; /* Space between line and tooltip */
+    margin-bottom: 8px; /* More space */
     background-color: var(--tooltip-bg);
     color: var(--tooltip-text);
     padding: 4px 8px;

@@ -202,16 +202,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const minutesIntoSlot = currentMinutes - startTime;
         const progress = minutesIntoSlot / slotDuration;
 
-        // --- POSITIONING FIX ---
-        // Calculate position relative to the main container, not just the grid
         const container = document.getElementById('heatmap-container');
         const containerRect = container.getBoundingClientRect();
         const slotRect = targetSlotElement.getBoundingClientRect();
-
-        const top = slotRect.top - containerRect.top;
+        
+        // --- MODIFIED: Make the indicator protrude ---
+        const protrusion = 10; // How many pixels to extend up and down
+        const top = (slotRect.top - containerRect.top) - protrusion;
         const left = slotRect.left - containerRect.left + (slotRect.width * progress);
-        const height = slotRect.height;
-        // --- END FIX ---
+        const height = slotRect.height + (protrusion * 2);
 
         indicator.style.top = `${top}px`;
         indicator.style.left = `${left}px`;
@@ -219,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
         indicator.style.display = 'block';
     }
 
-    // --- NEW FUNCTION for tooltip time ---
     function updateTooltipTime() {
         if (!nowTooltip) return;
         const now = new Date();
@@ -250,8 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
     renderLegend();
     updateNowIndicator();
-    updateTooltipTime(); // Initial call
+    updateTooltipTime();
     
     setInterval(updateNowIndicator, 60000);
-    setInterval(updateTooltipTime, 1000); // Update tooltip every second
+    setInterval(updateTooltipTime, 1000);
 });
