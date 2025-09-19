@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 1. DATA & CONSTANTS (New Sweet Macaron Palette) ---
+    // --- 1. DATA & CONSTANTS ---
     const teamMates = [
         { name: '肇云', color: '#ffc2d1' }, // Strawberry Pink
         { name: '庭瑜', color: '#d7c7f4' }, // Taro Purple
@@ -15,7 +15,21 @@ document.addEventListener('DOMContentLoaded', () => {
         '棨理': { 'Monday': { '5': '實驗', '6': '實驗', '7': '創創東東', '8': '創創東東', '9': '創創東東', '10': '創創東東', 'A': '創創東東', 'B': '創創東東' }, 'Tuesday': { '3': '羽球', '4': '羽球' }, 'Wednesday': { '3': '工讀', '4': '工讀', '5': '工讀', '6': '工讀', '7': '演算法', '8': '演算法', '9': '演算法', '10': '社課', 'A': '社課', 'B': '社課' }, 'Thursday': { '3': '工讀', '4': '工讀', '5': '工讀', '6': '工讀', '7': '田園生活', '8': '田園生活', '9': '田園生活', '10': '社課', 'A': '社課', 'B': '社課' }, 'Friday': { '7': '國文', '8': '國文', '9': '國文' } },
         '旭辰': { 'Monday': { '3': { name: '隔周實驗室組meeting', type: 'odd_week' },'4': { name: '隔周實驗室組meeting', type: 'odd_week' },'7': '創創東東', '8': '創創東東', '9': '創創東東', '10': '創創東東', 'A': '創創東東', 'B': '創創東東' }, 'Thursday': { '3': '實驗室大團meeting', '4': '實驗室大團meeting', '5': '實驗室大團meeting' } },
     };
-    const timeSections = { '上午': ['0', '1', '2', '3', '4'], '中午': ['5'], '下午': ['6', '7', '8', '9'], '晚上': ['10', 'A', 'B'] };
+    
+    const timeSections = { '上午': ['0', '1', '2', '3', '4'], '中午': ['5'], '下午': ['6', '7', '8', '9'], '晚上': ['10', 'A', 'B', 'C', 'D'] };
+    
+    // --- MOVED TO GLOBAL SCOPE ---
+    const timeSlotDetails = {
+        '0': { start: [7, 0], end: [8, 0] }, '1': { start: [8, 10], end: [9, 0] },
+        '2': { start: [9, 10], end: [10, 0] }, '3': { start: [10, 20], end: [11, 10] },
+        '4': { start: [11, 20], end: [12, 10] }, '5': { start: [12, 20], end: [13, 10] },
+        '6': { start: [13, 20], end: [14, 10] }, '7': { start: [14, 20], end: [15, 10] },
+        '8': { start: [15, 30], end: [16, 20] }, '9': { start: [16, 30], end: [17, 20] },
+        '10': { start: [17, 30], end: [18, 20] }, 'A': { start: [18, 30], end: [19, 20] },
+        'B': { start: [19, 25], end: [20, 15] }, 'C': { start: [20, 20], end: [21, 10] },
+        'D': { start: [21, 20], end: [22, 10] }
+    };
+
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const dayMap = { 'Monday': '週一', 'Tuesday': '週二', 'Wednesday': '週三', 'Thursday': '週四', 'Friday': '週五', 'Saturday': '週六', 'Sunday': '週日' };
 
@@ -43,18 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function render() {
         grid.innerHTML = '';
-
         const today = new Date();
         const dayOfWeek = today.getDay();
         const monday = new Date(today);
         monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-
         const membersToDisplay = filteredMember ? teamMates.filter(p => p.name === filteredMember) : teamMates;
-
         days.forEach((day, index) => {
             const column = document.createElement('div');
             column.className = 'day-column';
-
             const dayHeader = document.createElement('div');
             dayHeader.className = 'day-header';
             const dayName = document.createElement('div');
@@ -68,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
             dayHeader.appendChild(dayName);
             dayHeader.appendChild(dateLabel);
             column.appendChild(dayHeader);
-
             Object.values(timeSections).forEach(slots => {
                 const section = document.createElement('div');
                 section.className = 'day-section';
@@ -77,15 +86,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     slot.className = 'time-slot';
                     slot.dataset.day = day;
                     slot.dataset.slotKey = slotKey;
-                    
                     const busyMembers = membersToDisplay
                         .map(p => ({ ...p, activity: getActivity(p.name, day, slotKey) }))
                         .filter(p => p.activity);
-                    
                     const timeLabel = document.createElement('span');
                     timeLabel.className = 'time-slot-key';
                     timeLabel.textContent = slotKey;
-                    
                     if (busyMembers.length === 0) {
                         slot.classList.add('all-free');
                     } else {
@@ -114,33 +120,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderLegend() {
         if (!personLegend || !statusLegend) return;
         personLegend.innerHTML = '';
-
         teamMates.forEach(p => {
             const item = document.createElement('div');
             item.className = 'legend-item';
             item.innerHTML = `<div class="avatar" style="background-color: ${p.color};">${p.name.charAt(0)}</div><span>${p.name}</span>`;
-
             if (filteredMember) {
-                if (p.name === filteredMember) {
-                    item.classList.add('is-active');
-                } else {
-                    item.classList.add('is-inactive');
-                }
+                if (p.name === filteredMember) item.classList.add('is-active');
+                else item.classList.add('is-inactive');
             }
-
             item.addEventListener('click', () => {
-                if (filteredMember === p.name) {
-                    filteredMember = null;
-                } else {
-                    filteredMember = p.name;
-                }
+                if (filteredMember === p.name) filteredMember = null;
+                else filteredMember = p.name;
                 render();
                 renderLegend();
             });
-
             personLegend.appendChild(item);
         });
-
         const conflictExample = statusLegend.querySelector('.conflict-example');
         if (conflictExample) {
             conflictExample.innerHTML = '';
@@ -153,69 +148,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateNowIndicator() {
-        const timeSlotDetails = {
-            '0': { start: [7, 0], end: [8, 0] }, '1': { start: [8, 10], end: [9, 0] },
-            '2': { start: [9, 10], end: [10, 0] }, '3': { start: [10, 20], end: [11, 10] },
-            '4': { start: [11, 20], end: [12, 10] }, '5': { start: [12, 20], end: [13, 10] },
-            '6': { start: [13, 20], end: [14, 10] }, '7': { start: [14, 20], end: [15, 10] },
-            '8': { start: [15, 30], end: [16, 20] }, '9': { start: [16, 30], end: [17, 20] },
-            '10': { start: [17, 30], end: [18, 20] }, 'A': { start: [18, 30], end: [19, 20] },
-            'B': { start: [19, 25], end: [20, 15] }
-        };
-
         const now = new Date();
         const currentDayName = days[(now.getDay() + 6) % 7];
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
         const indicator = document.getElementById('now-indicator');
-
-        if (!indicator || !grid) return;
-
-        let activeSlotKey = null;
-        let slotInfo = null;
-
-        for (const key in timeSlotDetails) {
-            const slot = timeSlotDetails[key];
-            const startTime = slot.start[0] * 60 + slot.start[1];
-            const endTime = slot.end[0] * 60 + slot.end[1];
-            if (currentMinutes >= startTime && currentMinutes < endTime) {
-                activeSlotKey = key;
-                slotInfo = slot;
+        const container = document.getElementById('heatmap-container');
+        if (!indicator || !grid || !container) return;
+        const toMinutes = (time) => time[0] * 60 + time[1];
+        const sortedSlots = Object.entries(timeSlotDetails)
+            .map(([key, value]) => ({ key, ...value, startTime: toMinutes(value.start), endTime: toMinutes(value.end) }))
+            .sort((a, b) => a.startTime - b.startTime);
+        let positionSet = false;
+        for (const slot of sortedSlots) {
+            if (currentMinutes >= slot.startTime && currentMinutes < slot.endTime) {
+                const targetEl = grid.querySelector(`.time-slot[data-day='${currentDayName}'][data-slot-key='${slot.key}']`);
+                if (targetEl) {
+                    const progress = (currentMinutes - slot.startTime) / (slot.endTime - slot.startTime);
+                    const containerRect = container.getBoundingClientRect();
+                    const slotRect = targetEl.getBoundingClientRect();
+                    const protrusion = 6;
+                    indicator.style.top = `${(slotRect.top - containerRect.top) - protrusion}px`;
+                    indicator.style.left = `${slotRect.left - containerRect.left + (slotRect.width * progress)}px`;
+                    indicator.style.height = `${slotRect.height + (protrusion * 2)}px`;
+                    positionSet = true;
+                }
                 break;
             }
         }
-        
-        if (!activeSlotKey) {
-            indicator.style.display = 'none';
-            return;
+        if (!positionSet) {
+            for (let i = 0; i < sortedSlots.length - 1; i++) {
+                const prevSlot = sortedSlots[i];
+                const nextSlot = sortedSlots[i+1];
+                if (currentMinutes >= prevSlot.endTime && currentMinutes < nextSlot.startTime) {
+                    const prevEl = grid.querySelector(`.time-slot[data-day='${currentDayName}'][data-slot-key='${prevSlot.key}']`);
+                    const nextEl = grid.querySelector(`.time-slot[data-day='${currentDayName}'][data-slot-key='${nextSlot.key}']`);
+                    if (prevEl && nextEl) {
+                        const containerRect = container.getBoundingClientRect();
+                        const prevRect = prevEl.getBoundingClientRect();
+                        const nextRect = nextEl.getBoundingClientRect();
+                        if (Math.abs(prevRect.top - nextRect.top) < 10) {
+                            const progress = (currentMinutes - prevSlot.endTime) / (nextSlot.startTime - prevSlot.endTime);
+                            const visualGap = nextRect.left - prevRect.right;
+                            indicator.style.top = `${prevRect.top - containerRect.top}px`;
+                            indicator.style.left = `${(prevRect.right - containerRect.left) + (visualGap * progress)}px`;
+                            indicator.style.height = `${prevRect.height}px`;
+                        } else {
+                            indicator.style.top = `${prevRect.top - containerRect.top}px`;
+                            indicator.style.left = `${prevRect.right - containerRect.left}px`;
+                            indicator.style.height = `${prevRect.height}px`;
+                        }
+                        positionSet = true;
+                    }
+                    break;
+                }
+            }
         }
-
-        const targetSlotElement = grid.querySelector(`.time-slot[data-day='${currentDayName}'][data-slot-key='${activeSlotKey}']`);
-        
-        if (!targetSlotElement) {
-            indicator.style.display = 'none';
-            return;
-        }
-
-        const startTime = slotInfo.start[0] * 60 + slotInfo.start[1];
-        const endTime = slotInfo.end[0] * 60 + slotInfo.end[1];
-        const slotDuration = endTime - startTime;
-        const minutesIntoSlot = currentMinutes - startTime;
-        const progress = minutesIntoSlot / slotDuration;
-
-        const container = document.getElementById('heatmap-container');
-        const containerRect = container.getBoundingClientRect();
-        const slotRect = targetSlotElement.getBoundingClientRect();
-        
-        // --- MODIFIED: Make the indicator protrude ---
-        const protrusion = 10; // How many pixels to extend up and down
-        const top = (slotRect.top - containerRect.top) - protrusion;
-        const left = slotRect.left - containerRect.left + (slotRect.width * progress);
-        const height = slotRect.height + (protrusion * 2);
-
-        indicator.style.top = `${top}px`;
-        indicator.style.left = `${left}px`;
-        indicator.style.height = `${height}px`;
-        indicator.style.display = 'block';
+        indicator.style.display = positionSet ? 'block' : 'none';
     }
 
     function updateTooltipTime() {
@@ -236,6 +224,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if(themeToggle) themeToggle.innerHTML = iconHTML;
     }
 
+    // --- NEW: Function to render the time legend ---
+    function renderTimeLegend() {
+        const detailsContainer = document.getElementById('time-legend-details');
+        if (!detailsContainer) return;
+        detailsContainer.innerHTML = '';
+
+        const formatTime = (timeArr) => {
+            const h = String(timeArr[0]).padStart(2, '0');
+            const m = String(timeArr[1]).padStart(2, '0');
+            return `${h}:${m}`;
+        };
+
+        const sortedKeys = Object.keys(timeSlotDetails).sort((a, b) => {
+            // A simple sort for alphanumeric keys like '9', '10', 'A', 'B'
+            if (!isNaN(a) && !isNaN(b)) return a - b;
+            return a.localeCompare(b);
+        });
+
+        sortedKeys.forEach(key => {
+            const slot = timeSlotDetails[key];
+            const item = document.createElement('div');
+            item.className = 'legend-time-item';
+            item.innerHTML = `
+                <span class="slot-key">${key}</span>
+                <span class="slot-time">${formatTime(slot.start)} - ${formatTime(slot.end)}</span>
+            `;
+            detailsContainer.appendChild(item);
+        });
+    }
+
+    // --- Initial Setup ---
     const preferredTheme = localStorage.getItem('dashboardTheme') || 'light';
     setTheme(preferredTheme);
     if(themeToggle) {
@@ -244,9 +263,21 @@ document.addEventListener('DOMContentLoaded', () => {
             setTheme(newTheme);
         });
     }
+
+    // --- NEW: Event listener for the collapsible legend ---
+    const timeLegendToggle = document.getElementById('time-legend-toggle');
+    const timeLegendDetails = document.getElementById('time-legend-details');
+    if (timeLegendToggle && timeLegendDetails) {
+        timeLegendToggle.addEventListener('click', () => {
+            timeLegendToggle.classList.toggle('is-expanded');
+            timeLegendDetails.classList.toggle('is-expanded');
+        });
+    }
     
+    // --- Render all components and start intervals ---
     render();
     renderLegend();
+    renderTimeLegend();
     updateNowIndicator();
     updateTooltipTime();
     
