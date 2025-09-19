@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const personLegend = document.getElementById('person-legend');
     const statusLegend = document.getElementById('status-legend');
     const themeToggle = document.getElementById('theme-toggle');
+    const nowTooltip = document.getElementById('now-tooltip');
 
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -74,6 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 slots.forEach(slotKey => {
                     const slot = document.createElement('div');
                     slot.className = 'time-slot';
+                    slot.dataset.day = day;
+                    slot.dataset.slotKey = slotKey;
                     
                     const busyMembers = membersToDisplay
                         .map(p => ({ ...p, activity: getActivity(p.name, day, slotKey) }))
@@ -127,12 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             item.addEventListener('click', () => {
                 if (filteredMember === p.name) {
-                    filteredMember = null; // Toggle off if clicking the same person
+                    filteredMember = null;
                 } else {
-                    filteredMember = p.name; // Set to the clicked person
+                    filteredMember = p.name;
                 }
-                render(); // Re-render the grid
-                renderLegend(); // Re-render the legend for visual state
+                render();
+                renderLegend();
             });
 
             personLegend.appendChild(item);
@@ -150,19 +153,80 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateNowIndicator() {
+        const timeSlotDetails = {
+            '0': { start: [7, 0], end: [8, 0] }, '1': { start: [8, 10], end: [9, 0] },
+            '2': { start: [9, 10], end: [10, 0] }, '3': { start: [10, 20], end: [11, 10] },
+            '4': { start: [11, 20], end: [12, 10] }, '5': { start: [12, 20], end: [13, 10] },
+            '6': { start: [13, 20], end: [14, 10] }, '7': { start: [14, 20], end: [15, 10] },
+            '8': { start: [15, 30], end: [16, 20] }, '9': { start: [16, 30], end: [17, 20] },
+            '10': { start: [17, 30], end: [18, 20] }, 'A': { start: [18, 30], end: [19, 20] },
+            'B': { start: [19, 25], end: [20, 15] }
+        };
+
         const now = new Date();
-        const dayIndex = (now.getDay() + 6) % 7;
-        const totalMinutes = now.getHours() * 60 + now.getMinutes();
-        const totalMinutesInWeek = 7 * 24 * 60;
-        const minutesPassed = dayIndex * 24 * 60 + totalMinutes;
-        const totalPercent = (minutesPassed / totalMinutesInWeek) * 100;
+        const currentDayName = days[(now.getDay() + 6) % 7];
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
         const indicator = document.getElementById('now-indicator');
-        if (indicator && totalPercent >= 0 && totalPercent <= 100) {
-            indicator.style.left = `calc(${totalPercent}% + ${dayIndex * 12}px)`;
-            indicator.style.display = 'block';
-        } else if (indicator) {
-            indicator.style.display = 'none';
+
+        if (!indicator || !grid) return;
+
+        let activeSlotKey = null;
+        let slotInfo = null;
+
+        for (const key in timeSlotDetails) {
+            const slot = timeSlotDetails[key];
+            const startTime = slot.start[0] * 60 + slot.start[1];
+            const endTime = slot.end[0] * 60 + slot.end[1];
+            if (currentMinutes >= startTime && currentMinutes < endTime) {
+                activeSlotKey = key;
+                slotInfo = slot;
+                break;
+            }
         }
+        
+        if (!activeSlotKey) {
+            indicator.style.display = 'none';
+            return;
+        }
+
+        const targetSlotElement = grid.querySelector(`.time-slot[data-day='${currentDayName}'][data-slot-key='${activeSlotKey}']`);
+        
+        if (!targetSlotElement) {
+            indicator.style.display = 'none';
+            return;
+        }
+
+        const startTime = slotInfo.start[0] * 60 + slotInfo.start[1];
+        const endTime = slotInfo.end[0] * 60 + slotInfo.end[1];
+        const slotDuration = endTime - startTime;
+        const minutesIntoSlot = currentMinutes - startTime;
+        const progress = minutesIntoSlot / slotDuration;
+
+        // --- POSITIONING FIX ---
+        // Calculate position relative to the main container, not just the grid
+        const container = document.getElementById('heatmap-container');
+        const containerRect = container.getBoundingClientRect();
+        const slotRect = targetSlotElement.getBoundingClientRect();
+
+        const top = slotRect.top - containerRect.top;
+        const left = slotRect.left - containerRect.left + (slotRect.width * progress);
+        const height = slotRect.height;
+        // --- END FIX ---
+
+        indicator.style.top = `${top}px`;
+        indicator.style.left = `${left}px`;
+        indicator.style.height = `${height}px`;
+        indicator.style.display = 'block';
+    }
+
+    // --- NEW FUNCTION for tooltip time ---
+    function updateTooltipTime() {
+        if (!nowTooltip) return;
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        nowTooltip.innerText = `${hours}:${minutes}:${seconds}`;
     }
 
     function setTheme(theme) {
@@ -184,7 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     render();
-    renderLegend(); // Initial render for legend
+    renderLegend();
     updateNowIndicator();
+    updateTooltipTime(); // Initial call
+    
     setInterval(updateNowIndicator, 60000);
+    setInterval(updateTooltipTime, 1000); // Update tooltip every second
 });
